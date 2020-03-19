@@ -39,8 +39,8 @@ namespace UnrealBuildTool.Rules
 					"ProceduralMeshComponent",
 				}
 			);
-
-			bEnableExceptions = true;
+            PrivatePCHHeaderFile = "Private/PolyToolkitPCH.h";
+            bEnableExceptions = false;
 		}
 	}
 }
