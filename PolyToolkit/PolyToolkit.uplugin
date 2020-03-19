@@ -8,8 +8,7 @@
 	"CreatedBy" : "Google",
 	"CreatedByURL" : "https://poly.google.com",
 	"DocsURL" : "",
-	"EnabledByDefault" : false,
-	"EngineVersion" : "4.18.0",
+	"EnabledByDefault" : true,
 	"CanContainContent" : true,
 	"Installed" : true,
 	"Modules" :
