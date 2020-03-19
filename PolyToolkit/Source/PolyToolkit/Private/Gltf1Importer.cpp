@@ -48,14 +48,21 @@ UGltf1Importer::UGltf1Importer(const class FObjectInitializer& PCIP) : Super(PCI
 
 void UGltf1Importer::ImportModel(const FPolyFormat& File, const FString& AssetName, AActor* PolyActor)
 {
-#if PLATFORM_ANDROID
+#if PLATFORM_LUMIN
+	FString BasePath = FPaths::ProjectUserDir();
+#elif PLATFORM_ANDROID
 	FString BasePath = "/sdcard/UE4Game/HelloPolyToolkit/HelloPolyToolkit/Content/";
 #else
 	FString BasePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 #endif
 	AssetPath = FPaths::Combine(BasePath, AssetName);
 	FString RootFilePath = FPaths::Combine(AssetPath, File.root.relativePath);
-
+#if PLATFORM_LUMIN
+	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
+	// This module is only for Lumin so this is fine for now.
+	FLuminPlatformFile* LuminPlatformFile = static_cast<FLuminPlatformFile*>(&PlatformFile);
+	RootFilePath = LuminPlatformFile->ConvertToLuminPath(RootFilePath, true);
+#endif
 	UE_LOG(LogTemp, Warning, TEXT("GLTF1 File Path: %s"), *RootFilePath);
 	tinygltf::TinyGLTFLoader Loader;
 	std::string Err;
@@ -85,13 +92,13 @@ void UGltf1Importer::ImportModel(const FPolyFormat& File, const FString& AssetNa
 void UGltf1Importer::LoadScene(const std::vector<std::string>& SceneNodes, AActor* PolyActor)
 {
 	// Create root component.
-	UProceduralMeshComponent* Mesh = NewObject<UProceduralMeshComponent>(PolyActor);
-	PolyActor->SetRootComponent(Mesh);
-	Mesh->RegisterComponent();
+	USceneComponent* Root = NewObject<USceneComponent>(PolyActor);
+	PolyActor->SetRootComponent(Root);
+	Root->RegisterComponent();
 	// Iterate through Nodes.
 	for(auto& Node : SceneNodes)
 	{
-		LoadNode(Scene.nodes[Node], Mesh);
+		LoadNode(Scene.nodes[Node], Root);
 	}
 }
 

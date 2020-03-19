@@ -38,13 +38,22 @@ UGltf2Importer::UGltf2Importer(const class FObjectInitializer& PCIP) : Super(PCI
 
 void UGltf2Importer::ImportModel(const FPolyFormat& File, const FString& AssetName, AActor* PolyActor)
 {
-#if PLATFORM_ANDROID
+#if PLATFORM_LUMIN
+	FString BasePath = FPaths::ProjectUserDir();
+#elif PLATFORM_ANDROID
 	FString BasePath = "/sdcard/UE4Game/HelloPolyToolkit/HelloPolyToolkit/Content/";
 #else
 	FString BasePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 #endif
 	AssetPath = FPaths::Combine(BasePath, AssetName);
 	FString RootFilePath = FPaths::Combine(AssetPath, File.root.relativePath);
+#if PLATFORM_LUMIN
+	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
+	// This module is only for Lumin so this is fine for now.
+	FLuminPlatformFile* LuminPlatformFile = static_cast<FLuminPlatformFile*>(&PlatformFile);
+	RootFilePath = LuminPlatformFile->ConvertToLuminPath(RootFilePath, true);
+	UE_LOG(LogTemp, Warning, TEXT("Loading %s"), *RootFilePath);
+#endif
 	Asset = gltf2::load(TCHAR_TO_ANSI(*RootFilePath));
 
 	if(Asset.metadata.version != "2.0")
@@ -192,7 +201,15 @@ UMaterialInstanceDynamic* UGltf2Importer::LoadMaterial(const gltf2::Material& Ma
 		{
 			ImageFormat = EImageFormat::JPEG;
 		}
-#if PLATFORM_ANDROID
+#if PLATFORM_LUMIN
+		FString TexturePath;
+		const FRegexPattern Pattern(TEXT("^.*(\\/HelloPolyToolkit.*)$"));
+		FRegexMatcher Matcher(Pattern, UTF8_TO_TCHAR(BaseColorImage.uri.c_str()));
+		if (Matcher.FindNext())
+		{
+			TexturePath = Matcher.GetCaptureGroup(1);
+		}
+#elif PLATFORM_ANDROID
 		FString TexturePath;
 		const FRegexPattern Pattern(TEXT("^\\/sdcard\\/UE4Game\\/HelloPolyToolkit(\\/HelloPolyToolkit.*)$"));
 		FRegexMatcher Matcher(Pattern, UTF8_TO_TCHAR(BaseColorImage.uri.c_str()));
