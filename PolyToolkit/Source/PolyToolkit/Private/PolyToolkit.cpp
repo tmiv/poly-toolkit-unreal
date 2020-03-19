@@ -123,21 +123,28 @@ void UPolyToolkit::ListAssets(const FString& ApiKey, const FString& Keywords, bo
 void UPolyToolkit::OnListAssetsResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	FPolyAssetListResponse AssetListResponse;
-	if (Response.IsValid() && bWasSuccessful)
+
+	if (Response.IsValid())
 	{
-		if(Response->GetResponseCode() == HTTP_RESPONSE_OK)
+		if (bWasSuccessful)
 		{
-			FPolyAssetList AssetList;
-			if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &AssetList, 0, 0))
+			if (Response->GetResponseCode() == HTTP_RESPONSE_OK)
 			{
-				AssetListResponse.PolyAssetList = AssetList;
-				AssetListResponse.Success = true;
-				OnListAssetsComplete.ExecuteIfBound(AssetListResponse);
-				return;
+				FPolyAssetList AssetList;
+				if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &AssetList, 0, 0))
+				{
+					AssetListResponse.PolyAssetList = AssetList;
+					AssetListResponse.Success = true;
+					OnListAssetsComplete.ExecuteIfBound(AssetListResponse);
+					return;
+				}
 			}
 		}
+		else
+			AssetListResponse.ErrorMessage = Response->GetContentAsString();
 	}
-	AssetListResponse.ErrorMessage = Response->GetContentAsString();
+	else
+		AssetListResponse.ErrorMessage = FString("Invalid Response");
 	AssetListResponse.Success = false;
 	OnListAssetsComplete.ExecuteIfBound(AssetListResponse);
 }
