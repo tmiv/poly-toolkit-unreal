@@ -604,16 +604,20 @@ class TinyGLTFLoader {
 #endif
 
 #ifdef _WIN32
-#include <Windows.h>
+#include "WindowsHWrapper.h"
 #elif !PLATFORM_ANDROID
 #include <wordexp.h>
 #endif
 
+#ifdef _WIN32
+#define TINYGLTF_LITTLE_ENDIAN 1
+#else
 #if defined(__sparcv9)
 // Big endian
 #else
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
 #define TINYGLTF_LITTLE_ENDIAN 1
+#endif
 #endif
 #endif
 
