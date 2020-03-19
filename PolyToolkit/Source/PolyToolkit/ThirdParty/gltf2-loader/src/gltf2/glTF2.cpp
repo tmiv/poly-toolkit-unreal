@@ -518,12 +518,14 @@ static void loadBufferViews(Asset& asset, nlohmann::json& json) {
 
         // byteOffset
         if (bufferViews[i].find("byteOffset") == bufferViews[i].end()) {
-            std::abort();
+			asset.bufferViews[i].byteOffset = 0;
         }
-        if (!bufferViews[i]["byteOffset"].is_number()) {
-            std::abort();
-        }
-        asset.bufferViews[i].byteOffset = bufferViews[i]["byteOffset"].get<int32_t>();
+		else {
+			if (!bufferViews[i]["byteOffset"].is_number()) {
+				std::abort();
+			}
+			asset.bufferViews[i].byteOffset = bufferViews[i]["byteOffset"].get<int32_t>();
+		}
 
         // byteLength
         if (bufferViews[i].find("byteLength") == bufferViews[i].end()) {
@@ -562,9 +564,13 @@ static void loadBufferData(Asset& asset, Buffer& buffer) {
     }
 
     buffer.data = new char[buffer.byteLength];
-
+#if PLATFORM_LUMIN
+	std::transform(buffer.uri.begin(), buffer.uri.end(), buffer.uri.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+#endif
+	std::string fn = pathAppend(asset.dirName, buffer.uri);
     // TODO: load base64 uri
-    std::ifstream fileData(pathAppend(asset.dirName, buffer.uri), std::ios::binary);
+    std::ifstream fileData( fn, std::ios::binary);
     if (!fileData.good()) {
         std::abort();
     }
@@ -816,7 +822,12 @@ static void loadImages(Asset& asset, nlohmann::json& json) {
                 std::abort();
             }
 
-            asset.images[i].uri = pathAppend(asset.dirName, images[i]["uri"]);
+			std::string uri = images[i]["uri"];
+#if PLATFORM_LUMIN
+			std::transform(uri.begin(), uri.end(), uri.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+#endif
+            asset.images[i].uri = pathAppend(asset.dirName,uri);
         }
 
         // mimeType
@@ -954,18 +965,18 @@ Asset load(std::string fileName) {
     // TODO: Check the extension (.gltf / .glb)
 
     nlohmann::json json;
+	Asset asset{};
+
 
     {
         std::ifstream file(fileName);
 
         if (!file.is_open()) {
-            std::abort();
+			return asset;
         }
 
         file >> json;
     }
-
-    Asset asset{};
 
     asset.dirName = getDirectoryName(fileName);
 
