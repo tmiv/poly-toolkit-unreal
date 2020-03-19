@@ -15,15 +15,15 @@
 #include "CoreMinimal.h"
 #include "HttpDownload.h"
 
-void UHttpDownload::Download(const FPolyFile& File, const FString& AssetName, UPolyToolkit* PolyToolkit)
+void UHttpDownload::Download(const FPolyFile& inFile, const FString& inAssetName, UPolyToolkit* inPolyToolkit)
 {
 	HttpModule = &FHttpModule::Get();
-	this->File = File;
-	this->AssetName = AssetName;
-	this->PolyToolkit = PolyToolkit;
+	this->File = inFile;
+	this->AssetName = inAssetName;
+	this->PolyToolkit = inPolyToolkit;
 	TSharedRef<IHttpRequest> Request = HttpModule->CreateRequest();
 	Request->OnProcessRequestComplete().BindUObject(this, &UHttpDownload::OnDownloadResourceResponseReceived);
-	Request->SetURL(File.url);
+	Request->SetURL(inFile.url);
 	Request->SetVerb("GET");
 	Request->SetHeader(TEXT("User-Agent"), "X-UnrealEngine-Agent");
 	Request->SetHeader("Content-Type", TEXT("application/x-www-form-urlencoded"));
@@ -36,12 +36,20 @@ void UHttpDownload::OnDownloadResourceResponseReceived(FHttpRequestPtr Request, 
 	{
 		if(Response->GetResponseCode() == HTTP_RESPONSE_OK)
 		{
-#if PLATFORM_ANDROID
+#if PLATFORM_LUMIN
+			FString base = FPaths::ProjectUserDir();
+#elif PLATFORM_ANDROID
 			FString base = "/HelloPolyToolkit/Content/";
 #else
 			FString base = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 #endif
 			FString path = FPaths::Combine(base, AssetName, File.relativePath);
+#if PLATFORM_LUMIN
+			IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
+			// This module is only for Lumin so this is fine for now.
+			FLuminPlatformFile* LuminPlatformFile = static_cast<FLuminPlatformFile*>(&PlatformFile);
+			path = LuminPlatformFile->ConvertToLuminPath(path, true);
+#endif
 			FFileHelper::SaveArrayToFile(Response->GetContent(),*path);
 			PolyToolkit->OnDownloadResourceComplete(false);
 			return;
